@@ -28,6 +28,50 @@ struct node
 	int num;
 };
 
+struct ciphertext
+{
+	int X1;
+	int Y1;
+	int X2;
+	int Y2;
+};
+
+struct Add;
+
+struct Enc
+{
+	Add * a1;
+	Add * a2;
+	Add * a3;
+	Add * a4;
+	ciphertext * c;
+	int k;
+};
+
+struct Add
+{
+	Enc * e1;
+	Enc * e2;
+	int k;
+};
+
+ciphertext negate(ciphertext c)
+{
+	ciphertext n;
+	n.X1 = c.X2;
+	n.Y1 = c.Y2;
+	n.X2 = c.X1;
+	n.Y2 = c.Y1;
+	return n;
+}
+
+Enc negate(Enc e, int k)
+{
+
+	*((e.a1)->e1)
+}
+
+
 bool write_to_socket(int sockfd,const char* msg,int len){
 	int n,i=0;
 	do{	n = write(sockfd,msg+i,min(len-i,512));
@@ -46,7 +90,6 @@ bool read_from_socket(int sockfd,string &s){
 	int n=0,len=0;
 	while((n=read(sockfd,buffer,512))>0){
 		received.push_back(buffer);
-		// printf("kya machh raha hai? %s\n",buffer);
 		len+=received.back().size();
 		if(received.back().find('!')!=string::npos) break;
 		bzero(buffer,512);
@@ -60,10 +103,9 @@ bool read_from_socket(int sockfd,string &s){
 			s[i+n]=r[i];
 		n+=r.size();
 	}
-	// printf("%s\n",s.c_str());
-	// s[n]=0;
 	return true;
 }
+
 
 int main(int argc, char *argv[])
 {
@@ -137,9 +179,11 @@ int main(int argc, char *argv[])
 
 	printf("INPUT TAKEN\n");
 
+
+
+
 	int sockfd, newsockfd, portno;
 	socklen_t clilen;
-	char buffer[1024];
 	struct sockaddr_in serv_addr, cli_addr;
 	int n;
 	if (argc < 2) {
@@ -149,14 +193,21 @@ int main(int argc, char *argv[])
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0) 
 		error("ERROR opening socket");
+
+
 	bzero((char *) &serv_addr, sizeof(serv_addr));
+
+
 	portno = atoi(argv[1]);
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
 	serv_addr.sin_port = htons(portno);
+
+
 	if (bind(sockfd, (struct sockaddr *) &serv_addr,
 		sizeof(serv_addr)) < 0) 
 		error("ERROR on binding");
+
 	listen(sockfd,5);
 	clilen = sizeof(cli_addr);
 	newsockfd = accept(sockfd, 
@@ -164,47 +215,84 @@ int main(int argc, char *argv[])
 		&clilen);
 	if (newsockfd < 0) 
 		error("ERROR on accept");
-	bzero(buffer,1024);
-	string str;
-	n = read_from_socket(newsockfd,str);
 
-	if (n < 0) error("ERROR reading from socket");
-	str = str.substr(0, str.length()-1);
-	stringstream stream(str);
-	vector<int> input_values;
-	while(1) {
-		int n;
-		stream >> n;
-		if(!stream)
-			break;
-		input_values.push_back(n);
-	}
-	for (int i = 0; i < edges.size(); ++i)
+
+	// Read data from here
+
+	////////////////////////////////////////////////////////////////////
+	// Code to read in the public key and the generator
+	////////////////////////////////////////////////////////////////////
+	string g_pk;
+	n = read_from_socket(newsockfd, g_pk);
+	g_pk = g_pk.substr(0, g_pk.length()-1);
+	stringstream stream_pk(g_pk);
+	int g;
+	stream_pk >> g;
+	int pk;
+	stream_pk >> pk;
+	int p;
+	stream_pk >> p;
+	cout<<"Generator : " << g<<" public Key : "<<pk<<" Prime : "<<p << endl;
+
+	vector<ciphertext> received(inp);
+	string s = "";
+	n = read_from_socket(newsockfd, s);
+	if (n < 0)
+		error("ERROR reading from socket");
+	s = s.substr(0, s.length()-1);
+	stringstream stream_ciphers(s);
+	for (int i = 0; i < inp; ++i)
 	{
-		if (edges[i].node_type == "INPUT")
-		{
-			edges[i].value = input_values[i];
-		}
-		else if (edges[i].node_type == "MID"  || edges[i].node_type == "OUTPUT")
-		{
-			if (edges[i].type == "OR")
-			{
-				edges[i].value = (edges[edges[i].input1].value | edges[edges[i].input2].value);
-			}
-			else if (edges[i].type == "NOT")
-			{
-				edges[i].value = 1 - edges[edges[i].input1].value;
-			}
-		}
+		stream_ciphers >> received[i].X1;
+		stream_ciphers >> received[i].Y1;
+		cout<<received[i].X1 << " " << received[i].Y1<<endl; 
+		stream_ciphers >> received[i].X2;
+		stream_ciphers >> received[i].Y2;
+		cout<<received[i].X2 << " " << received[i].Y2<<endl; 
 	}
-	for (int i = edges.size()-1; i >= 0; i--)
-	{
-		if(edges[i].node_type == "OUTPUT")
-		{
-			cout<<edges[i].value<<endl;
-		}
-	}
-	cout<<"Here is the value:" + str + "\n"<<endl;
+
+
+
+	// string str;
+	// n = read_from_socket(newsockfd,str);
+
+	// if (n < 0) error("ERROR reading from socket");
+	// str = str.substr(0, str.length()-1);
+	// stringstream stream(str);
+	// vector<int> input_values;
+	// while(1) {
+	// 	int n;
+	// 	stream >> n;
+	// 	if(!stream)
+	// 		break;
+	// 	input_values.push_back(n);
+	// }
+	// for (int i = 0; i < edges.size(); ++i)
+	// {
+	// 	if (edges[i].node_type == "INPUT")
+	// 	{
+	// 		edges[i].value = input_values[i];
+	// 	}
+	// 	else if (edges[i].node_type == "MID"  || edges[i].node_type == "OUTPUT")
+	// 	{
+	// 		if (edges[i].type == "OR")
+	// 		{
+	// 			edges[i].value = (edges[edges[i].input1].value | edges[edges[i].input2].value);
+	// 		}
+	// 		else if (edges[i].type == "NOT")
+	// 		{
+	// 			edges[i].value = 1 - edges[edges[i].input1].value;
+	// 		}
+	// 	}
+	// }
+	// for (int i = edges.size()-1; i >= 0; i--)
+	// {
+	// 	if(edges[i].node_type == "OUTPUT")
+	// 	{
+	// 		cout<<edges[i].value<<endl;
+	// 	}
+	// }
+	// cout<<"Here is the value:" + str + "\n"<<endl;
 	n = write_to_socket(newsockfd,"I got your message!",18);
 	if (n < 0) error("ERROR writing to socket");
 	close(newsockfd);
