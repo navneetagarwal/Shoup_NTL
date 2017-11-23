@@ -19,7 +19,9 @@ int main(int argc, char *argv[])
     int sockfd, portno, n;
     struct sockaddr_in serv_addr;
     struct hostent *server;
-
+    int security_parameter;
+    cout<<"Enter a security parameter"<<endl;
+    cin>>security_parameter;
     char buffer[1024];
     if (argc < 3) {
        fprintf(stderr,"usage %s hostname port\n", argv[0]);
@@ -42,6 +44,7 @@ int main(int argc, char *argv[])
     serv_addr.sin_port = htons(portno);
     if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
         error("ERROR connecting");
+    int num_inputs;
     printf("Please enter the inputs to the circuit (x in encrypted form): ");
     bzero(buffer,1024);
     fgets(buffer,1023,stdin);
