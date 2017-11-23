@@ -45,6 +45,7 @@ struct Enc
 	Add * a3;
 	Add * a4;
 	ciphertext * c;
+	string type = "Enc";
 	int k;
 };
 
@@ -52,23 +53,251 @@ struct Add
 {
 	Enc * e1;
 	Enc * e2;
-	int k;
+	string type  ="Add";
 };
 
-ciphertext negate(ciphertext c)
+ciphertext * negation_cipher(ciphertext * c)
 {
-	ciphertext n;
-	n.X1 = c.X2;
-	n.Y1 = c.Y2;
-	n.X2 = c.X1;
-	n.Y2 = c.Y1;
+	// ciphertext n;
+	// n.X1 = c.X2;
+	// n.Y1 = c.Y2;
+	// n.X2 = c.X1;
+	// n.Y2 = c.Y1;
+	// return n;
+	ciphertext * n = new ciphertext();
+	n->X1 = c->X2;
+	n->Y1 = c->Y2;
+	n->X2 = c->X1;
+	n->Y2 = c->Y1;
 	return n;
 }
 
-Enc negate(Enc e, int k)
+Enc * negation(Enc * e)
 {
+	int k = e->k;
+	if (k == 0)
+	{
+		// a1 = NULL, a2 = NULL, a3 = NULL, a4 = NULL
+		Enc * n = new Enc();
+		n->a1 = NULL;
+		n->a2 = NULL;
+		n->a3 = NULL;
+		n->a4 = NULL;
+		n->c = negation_cipher(e->c);
+		return n;
+	}
+	Enc * a1_1 = negation((e->a1)->e1);
+	Enc * a2_1 = negation((e->a2)->e1);	
+	Enc * a3_1 = negation((e->a3)->e1);	
+	Enc * a4_1 = negation((e->a4)->e1);	
 
-	*((e.a1)->e1)
+	Enc * n = new Enc();
+	Add * a = new Add();
+	a->e1 = a1_1;
+	a->e2 = (e->a1)->e2;
+	n->a1 = a;
+
+	Add * b = new Add();
+	b->e1 = a2_1;
+	b->e2 = (e->a2)->e2;
+	n->a2 = b;
+
+	Add * c = new Add();
+	c->e1 = a3_1;
+	c->e2 = (e->a3)->e2;
+	n->a3 = c;
+
+	Add * d = new Add();
+	d->e1 = a4_1;
+	d->e2 = (e->a4)->e2;
+	n->a4 = d;
+
+	n->k = k;
+	return n;
+}
+
+Enc * OR(Enc *, Enc *);
+
+ciphertext * encrypt(int num)
+{
+	ciphertext * c = new ciphertext;
+	// Add code for encryption
+	return c;
+}
+
+
+Enc * get_enc(int level, int num)
+{
+	if(level == 0)
+	{
+		Enc * n = new Enc();
+		n->a1 = NULL;
+		n->a2 = NULL;
+		n->a3 = NULL;
+		n->a4 = NULL;
+		n->c = encrypt(num);
+		return n;
+	}
+	Enc * a = new Enc();
+	Enc * b = new Enc();
+	if(num == 0)
+	{
+		a = get_enc(level - 1, 0);
+		b = get_enc(level - 1, 0);
+	}
+	else
+	{
+		a = get_enc(level - 1, 0);
+		b = get_enc(level - 1, 1);	
+	}
+
+	Enc * n = new Enc();
+	n = OR(a, b);
+	return n;
+}
+
+Enc * OR(Enc * x, Enc * y)
+{
+	int k = x->k;
+	Enc * n = new Enc();
+	n->k = k+1;
+	n->a1 = new Add();
+	n->a1->e1 = x;
+	n->a1->e2 = get_enc(k, 0);
+	n->a2 = new Add();
+	n->a2->e1 = y;
+	n->a2->e2 = get_enc(k, 0);
+	n->a3 = new Add();
+	n->a3->e1 = x;
+	n->a3->e2 = y;
+	n->a4 = new Add();
+	n->a4->e1 = get_enc(k, 0);
+	n->a4->e2 = get_enc(k, 1);
+	return n;
+
+}
+
+int decode_enc(Enc *);
+
+int decrypt(ciphertext * c)
+{
+	int val;
+	// Add code for decryption
+	return val;
+}
+
+int decode_add(Add * x)
+{
+	return (decode_enc(x->e1) + decode_enc(x->e2)) % 2;
+}
+
+int decode_enc(Enc * x)
+{
+	if(x->k == 0)
+	{
+		return decrypt(x->c);
+	}
+	else
+	{
+		int a1 = decode_add(x->a1);
+		int a2 = decode_add(x->a2);
+		int a3 = decode_add(x->a3);
+		int a4 = decode_add(x->a4);
+
+		if(a1 + a2 + a3 + a4 == 3)
+			return 1;
+		else
+			return 0;
+	}
+}
+
+Enc * randomize(ciphertext * c)
+{
+	Enc * n;
+	// Perform randomization
+	return  n;
+}
+
+Enc * randomize(Enc * x)
+{
+	int k = x->k;
+	if(k == 0)
+	{
+		return randomize(x->c);
+	}
+	Enc * n = new Enc ();
+	n->k = x->k;
+
+	Enc * b11 = randomize(x->a1->e1);
+	Enc * b12 = randomize(x->a1->e2);
+
+	Enc * b21 = randomize(x->a2->e1);
+	Enc * b22 = randomize(x->a2->e2);
+
+	Enc * b31 = randomize(x->a3->e1);
+	Enc * b32 = randomize(x->a3->e2);
+
+	Enc * b41 = randomize(x->a4->e1);
+	Enc * b42 = randomize(x->a4->e2);
+
+	int r1 = rand() % 2;
+	if(r1 == 0)
+	{
+		n->a1 = new Add();
+		n->a1->e1 = b11;
+		n->a1->e2 = b12;
+	}
+	else
+	{
+		n->a1 = new Add();
+		n->a1->e1 = negation(b11);
+		n->a1->e2 = negation(b12);
+	}
+
+	int r2 = rand() % 2;
+	if(r2 == 0)
+	{
+		n->a2 = new Add();
+		n->a2->e1 = b21;
+		n->a2->e2 = b22;
+	}
+	else
+	{
+		n->a2 = new Add();
+		n->a2->e1 = negation(b21);
+		n->a2->e2 = negation(b22);
+	}
+
+	int r3 = rand() % 2;
+	if(r3 == 0)
+	{
+		n->a3 = new Add();
+		n->a3->e1 = b31;
+		n->a3->e2 = b32;
+	}
+	else
+	{
+		n->a3 = new Add();
+		n->a3->e1 = negation(b31);
+		n->a3->e2 = negation(b32);
+	}
+
+	int r4 = rand() % 2;
+	if(r4 == 0)
+	{
+		n->a4 = new Add();
+		n->a4->e1 = b41;
+		n->a4->e2 = b42;
+	}
+	else
+	{
+		n->a4 = new Add();
+		n->a4->e1 = negation(b41);
+		n->a4->e2 = negation(b42);
+	}
+
+	// Perform random permutation here
+	return n;
 }
 
 
