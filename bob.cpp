@@ -56,6 +56,8 @@ struct Add
 	string type  ="Add";
 };
 
+// Performs negation of ciphertext
+
 ciphertext * negation_cipher(ciphertext * c)
 {
 	// ciphertext n;
@@ -71,6 +73,8 @@ ciphertext * negation_cipher(ciphertext * c)
 	n->Y2 = c->Y1;
 	return n;
 }
+
+// Performs negation of Enc 
 
 Enc * negation(Enc * e)
 {
@@ -116,15 +120,24 @@ Enc * negation(Enc * e)
 	return n;
 }
 
+
 Enc * OR(Enc *, Enc *);
+
+// Encryption function
 
 ciphertext * encrypt(int num)
 {
 	ciphertext * c = new ciphertext;
+	/////////////////////////////////////////////////////////////
 	// Add code for encryption
+	// TODO
+	/////////////////////////////////////////////////////////////
+	
 	return c;
 }
 
+
+// Get encryption of constants
 
 Enc * get_enc(int level, int num)
 {
@@ -156,6 +169,8 @@ Enc * get_enc(int level, int num)
 	return n;
 }
 
+// Perform OR operation as specified
+
 Enc * OR(Enc * x, Enc * y)
 {
 	int k = x->k;
@@ -179,18 +194,27 @@ Enc * OR(Enc * x, Enc * y)
 
 int decode_enc(Enc *);
 
+
+// Decrypt functions
+
 int decrypt(ciphertext * c)
 {
 	int val;
+	/////////////////////////////////////////////////////////////
 	// Add code for decryption
+	// TODO
+	/////////////////////////////////////////////////////////////
 	return val;
 }
+
+// Decode an add 
 
 int decode_add(Add * x)
 {
 	return (decode_enc(x->e1) + decode_enc(x->e2)) % 2;
 }
 
+// Decode an Enc
 int decode_enc(Enc * x)
 {
 	if(x->k == 0)
@@ -211,13 +235,20 @@ int decode_enc(Enc * x)
 	}
 }
 
+// Randomize El Gamal
+
 Enc * randomize(ciphertext * c)
 {
 	Enc * n;
-	// Perform randomization
+	/////////////////////////////////////////////////////////////
+	// Perform Randomization
+	// TODO
+	/////////////////////////////////////////////////////////////
 	return  n;
 }
 
+
+// Randomize Enc
 Enc * randomize(Enc * x)
 {
 	int k = x->k;
@@ -295,8 +326,10 @@ Enc * randomize(Enc * x)
 		n->a4->e1 = negation(b41);
 		n->a4->e2 = negation(b42);
 	}
-
+	/////////////////////////////////////////////////////////////
 	// Perform random permutation here
+	// TODO
+	/////////////////////////////////////////////////////////////
 	return n;
 }
 
