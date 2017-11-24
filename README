@@ -1,0 +1,10 @@
+To run the code,
+
+1) Compile the bob.cpp by running g++ -std=c++11 -o server bob.cpp <port_no>
+2) Compile alice.cpp by running g++ -std=c++11 -o client alice.cpp <port_no>
+3) Run the server by ./server 8000 < <text file for circuit input>
+4) Run the client by ./client <host_ip> <port_no>
+
+Then enter a safe prime in Alice when prompted and give the appropriate input (It should be 0 or 1 and number of inputs should match as expected by the circuit you gave in Bob).
+
+Then Alice print the output result on its terminal.
