@@ -44,6 +44,7 @@ struct ciphertext
 };
 
 struct Add;
+Add* copy(Add* x);
 
 struct Enc
 {
@@ -56,12 +57,47 @@ struct Enc
 	int k;
 };
 
+Enc* copy(Enc* x)
+{
+	Enc* res = new Enc;
+	if(x->k == 0)
+	{
+		res->a1=NULL;
+		res->a2=NULL;
+		res->a3=NULL;
+		res->a4=NULL;
+		ciphertext * new_c = new ciphertext;
+		new_c->X1 = (x->c)->X1;
+		new_c->Y1 = (x->c)->Y1;
+		new_c->X2 = (x->c)->X2;
+		new_c->Y2 = (x->c)->Y2;
+		res->c = new_c;
+		return res;
+	}
+	else{
+		res->a1 = copy(x->a1);
+		res->a2 = copy(x->a2);
+		res->a3 = copy(x->a3);
+		res->a4 = copy(x->a4);
+		res->c = NULL;
+		return res;
+	}
+}
+
 struct Add
 {
 	Enc * e1;
 	Enc * e2;
 	string type  ="Add";
 };
+
+Add* copy(Add* x)
+{
+	Add* res = new Add;
+	res->e1 = copy(x->e1);
+	res->e2 = copy(x->e2);
+	return res;
+}
 
 // Performs negation of ciphertext
 
@@ -96,28 +132,12 @@ Enc * negation(Enc * e)
 	Enc * a3_1 = negation((e->a3)->e1);	
 	Enc * a4_1 = negation((e->a4)->e1);	
 
-	Enc * n = new Enc();
-	Add * a = new Add();
-	a->e1 = a1_1;
-	a->e2 = (e->a1)->e2;
-	n->a1 = a;
+	Enc * n = copy(e);
+	n->(a1->e1) = a1_1;
+	n->(a2->e1) = a2_1;
+	n->(a3->e1) = a3_1;
+	n->(a4->e1) = a4_1;
 
-	Add * b = new Add();
-	b->e1 = a2_1;
-	b->e2 = (e->a2)->e2;
-	n->a2 = b;
-
-	Add * c = new Add();
-	c->e1 = a3_1;
-	c->e2 = (e->a3)->e2;
-	n->a3 = c;
-
-	Add * d = new Add();
-	d->e1 = a4_1;
-	d->e2 = (e->a4)->e2;
-	n->a4 = d;
-
-	n->k = k;
 	return n;
 }
 
@@ -148,7 +168,7 @@ int power(int x, int y, int p)
 
 ciphertext * encrypt(int num)
 {
-	ciphertext * c = new ciphertext;
+	ciphertext * c = new ciphertext();
 	/////////////////////////////////////////////////////////////
 	// Add code for encryption
 	// TODO
@@ -188,8 +208,7 @@ Enc * get_enc(int level, int num)
 		n->c = encrypt(num);
 		return n;
 	}
-	Enc * a = new Enc();
-	Enc * b = new Enc();
+	Enc *a,*b;
 	if(num == 0)
 	{
 		a = get_enc(level - 1, 0);
@@ -198,11 +217,10 @@ Enc * get_enc(int level, int num)
 	else
 	{
 		a = get_enc(level - 1, 0);
-		b = get_enc(level - 1, 1);	
+		b = get_enc(level - 1, 1);
 	}
 
-	Enc * n = new Enc();
-	n = OR(a, b);
+	Enc * n = OR(a, b);
 	return n;
 }
 
@@ -214,19 +232,20 @@ Enc * OR(Enc * x, Enc * y)
 	Enc * n = new Enc();
 	n->k = k+1;
 	n->a1 = new Add();
-	n->a1->e1 = x;
+	n->a1->e1 = copy(x);
 	n->a1->e2 = get_enc(k, 0);
 	n->a2 = new Add();
-	n->a2->e1 = y;
+	n->a2->e1 = copy(y);
 	n->a2->e2 = get_enc(k, 0);
 	n->a3 = new Add();
-	n->a3->e1 = x;
-	n->a3->e2 = y;
+	n->a3->e1 = copy(x);
+	n->a3->e2 = copy(y);
 	n->a4 = new Add();
 	n->a4->e1 = get_enc(k, 0);
 	n->a4->e2 = get_enc(k, 1);
-	return n;
 
+	n->c = NULL;
+	return n;
 }
 
 int decode_enc(Enc *);
@@ -253,7 +272,10 @@ int decrypt(ciphertext * c)
 	int Y = c->Y1;
 	Y = (Y * X) % glob.p;
 	/////////////////////////////////////////////////////////////
-	return Y;
+	if(Y == 1)
+		return 0;
+	else
+		return 1;
 }
 
 // Decode an add 
@@ -295,12 +317,12 @@ Enc * randomize(ciphertext * c)
 	ciphertext * d = new ciphertext();
 	int mod = (glob.p - 1) / 2;
 	int r = rand() % mod;
-	d->X1 = c->X1 * power(glob.generator, r, glob.p);
-	d->Y1 = c->Y1 * power(glob.Y, r, glob.p);
+	d->X1 = (c->X1 * power(glob.generator, r, glob.p))%glob.p;
+	d->Y1 = (c->Y1 * power(glob.Y, r, glob.p))%glob.p;
 
 	r = rand() % mod;
-	d->X2 = c->X2 * power(glob.generator, r, glob.p);
-	d->Y2 = c->Y2 * power(glob.Y, r, glob.p);
+	d->X2 = (c->X2 * power(glob.generator, r, glob.p))%glob.p;
+	d->Y2 = (c->Y2 * power(glob.Y, r, glob.p))%glob.p;
 	/////////////////////////////////////////////////////////////
 	n->a1 = NULL;
 	n->a2 = NULL;
@@ -308,9 +330,14 @@ Enc * randomize(ciphertext * c)
 	n->a4 = NULL;
 
 	n->c = d;
+	n->k = 0;
 	return  n;
 }
 
+void permute(Enc* x)
+{
+
+}
 
 // Randomize Enc
 Enc * randomize(Enc * x)
@@ -390,9 +417,11 @@ Enc * randomize(Enc * x)
 		n->a4->e1 = negation(b41);
 		n->a4->e2 = negation(b42);
 	}
+	n->c = NULL;
 	/////////////////////////////////////////////////////////////
 	// Perform random permutation here
 	// TODO
+	permute(n);
 	/////////////////////////////////////////////////////////////
 	return n;
 }
