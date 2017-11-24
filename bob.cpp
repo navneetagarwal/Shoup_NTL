@@ -17,6 +17,13 @@ void error(const char *msg)
 	exit(1);
 }
 
+struct public_key
+{
+	int generator;
+	int Y;
+	int p;
+} glob;
+
 struct node
 {
 	string node_type; //  INPUT or OUTPUT or MID
@@ -60,12 +67,6 @@ struct Add
 
 ciphertext * negation_cipher(ciphertext * c)
 {
-	// ciphertext n;
-	// n.X1 = c.X2;
-	// n.Y1 = c.Y2;
-	// n.X2 = c.X1;
-	// n.Y2 = c.Y1;
-	// return n;
 	ciphertext * n = new ciphertext();
 	n->X1 = c->X2;
 	n->Y1 = c->Y2;
@@ -123,6 +124,26 @@ Enc * negation(Enc * e)
 
 Enc * OR(Enc *, Enc *);
 
+
+// Power function
+int power(int x, int y, int p)
+{
+    int res = 1;      // Initialize result
+ 
+    x = x % p;  // Update x if it is more than or 
+                // equal to p
+    while (y > 0)
+    {
+        // If y is odd, multiply x with result
+        if (y & 1)
+            res = (res*x) % p;
+        // y must be even now
+        y = y>>1; // y = y/2
+        x = (x*x) % p;  
+    }
+    return res;
+}
+
 // Encryption function
 
 ciphertext * encrypt(int num)
@@ -131,8 +152,24 @@ ciphertext * encrypt(int num)
 	/////////////////////////////////////////////////////////////
 	// Add code for encryption
 	// TODO
+	if(num == 0)
+		num = 1;
+	else
+		num = 4;
+	int mod = (glob.p - 1) / 2;
+	int r = rand()%mod;
+	c->X1 = power(glob.generator, r, glob.p);
+	c->Y1 = (num * power(glob.Y, r, glob.p)) % glob.p;
+
+	if(num == 1)
+		num = 4;
+	else
+		num = 1;
+	r = rand() % mod;
+	c->X2 = power(glob.generator, r, glob.p);
+	c->Y2 = (num * power(glob.Y, r, glob.p)) % glob.p;
 	/////////////////////////////////////////////////////////////
-	
+
 	return c;
 }
 
@@ -195,6 +232,12 @@ Enc * OR(Enc * x, Enc * y)
 int decode_enc(Enc *);
 
 
+int inverse(int n, int p)
+{
+	int mod = (p - 1)/2;
+	return power(n, mod-1, p);
+}
+
 // Decrypt functions
 
 int decrypt(ciphertext * c)
@@ -203,8 +246,14 @@ int decrypt(ciphertext * c)
 	/////////////////////////////////////////////////////////////
 	// Add code for decryption
 	// TODO
+	int sk = 1;// Should be in Alice
+	int X = c->X1;
+	X = power(X, sk, glob.p);
+	X = inverse(X, glob.p);
+	int Y = c->Y1;
+	Y = (Y * X) % glob.p;
 	/////////////////////////////////////////////////////////////
-	return val;
+	return Y;
 }
 
 // Decode an add 
@@ -243,7 +292,22 @@ Enc * randomize(ciphertext * c)
 	/////////////////////////////////////////////////////////////
 	// Perform Randomization
 	// TODO
+	ciphertext * d = new ciphertext();
+	int mod = (glob.p - 1) / 2;
+	int r = rand() % mod;
+	d->X1 = c->X1 * power(glob.generator, r, glob.p);
+	d->Y1 = c->Y1 * power(glob.Y, r, glob.p);
+
+	r = rand() % mod;
+	d->X2 = c->X2 * power(glob.generator, r, glob.p);
+	d->Y2 = c->Y2 * power(glob.Y, r, glob.p);
 	/////////////////////////////////////////////////////////////
+	n->a1 = NULL;
+	n->a2 = NULL;
+	n->a3 = NULL;
+	n->a4 = NULL;
+
+	n->c = d;
 	return  n;
 }
 
@@ -490,10 +554,13 @@ int main(int argc, char *argv[])
 	stringstream stream_pk(g_pk);
 	int g;
 	stream_pk >> g;
+	glob.generator = g;
 	int pk;
 	stream_pk >> pk;
+	glob.Y = pk;
 	int p;
 	stream_pk >> p;
+	glob.p = p;
 	cout<<"Generator : " << g<<" public Key : "<<pk<<" Prime : "<<p << endl;
 
 	vector<ciphertext> received(inp);
