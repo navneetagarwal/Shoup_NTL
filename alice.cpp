@@ -8,13 +8,9 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 #include <time.h>
+#include "helper.hh"
 using namespace std;
 
-void error(const char *msg)
-{
-	perror(msg);
-	exit(0);
-}
 
 bool check_prime(int n)
 {
@@ -27,64 +23,12 @@ bool check_prime(int n)
 	return n > 1;
 }
 
-bool write_to_socket(int sockfd,const char* msg,int len){
-	int n,i=0;
-	do{ n = write(sockfd,msg+i,min(len-i,512));
-		i+=n;
-	} while(i<len&&n>=0);
-	return n>=0&&i==len;
-}
-
-//read long string from socket terminated by '!'
-bool read_from_socket(int sockfd,string &s){
-	char buffer[513];
-	/* read message from client possibly spread over multiple blocks */
-	bzero(buffer,513);
-	vector<string>received;
-	int n=0,len=0;
-	while((n=read(sockfd,buffer,512))>0){
-		received.push_back(buffer);
-		len+=received.back().size();
-		if(received.back().find('!')!=string::npos) break;
-		bzero(buffer,512);
-	}
-	if (n < 0)      return false;
-	/* linearize the received tokens into single token */
-	s=string(len+1,0);
-	n=0;
-	for(auto r: received) {
-		for(int i=0;i<r.size();i++)
-			s[i+n]=r[i];
-		n+=r.size();
-	}
-	return true;
-}
-
-// Power function
-int power(int x, int y, int p)
-{
-    int res = 1;      // Initialize result
- 
-    x = x % p;  // Update x if it is more than or 
-                // equal to p
-    while (y > 0)
-    {
-        // If y is odd, multiply x with result
-        if (y & 1)
-            res = (res*x) % p;
-        // y must be even now
-        y = y>>1; // y = y/2
-        x = (x*x) % p;  
-    }
-    return res;
-}
 
 // Encryption function
 pair<int, int> encrypt(int plaintext, int p, int pk)
 {
 	int mod = (p - 1) / 2;
 	int r = rand()%mod;
-	cout<<"Randomness: " <<r<<endl;
 	// Generator
 	int g = 4;
 	pair<int, int> res;
@@ -92,11 +36,6 @@ pair<int, int> encrypt(int plaintext, int p, int pk)
 	res.second = (plaintext * power(pk, r, p)) % p;
 	return res;
 }
-int inverse(int n, int p)
-{
-	int mod = (p - 1)/2;
-	return power(n, mod-1, p);
-}	
 
 int decrypt(int sk, pair<int, int> cipher, int p)
 {
@@ -107,6 +46,7 @@ int decrypt(int sk, pair<int, int> cipher, int p)
 	Y = (Y * X) % p;
 	return Y;
 }
+
 
 
 int main(int argc, char *argv[])
@@ -164,7 +104,7 @@ int main(int argc, char *argv[])
 	// Send public key to Bob
 	///////////////////////////////////////////////////////////////////////////
 	string public_key = "";
-	public_key += to_string(g) + " " + to_string(pk) + " " + to_string(p) + "!";
+	public_key += to_string(g) + " " + to_string(pk) + " " + to_string(p)  +  "!";
 	n = write_to_socket(sockfd,public_key.c_str(),public_key.length());
 	if (n < 0) 
 		error("ERROR writing to socket");
@@ -195,7 +135,7 @@ int main(int argc, char *argv[])
 	{
 		pair<int, int> val = encrypt(input_values[i], p, pk);
 		// cout<<"Message "<<input_values[i]<<" ";
-		cout<<"Encrypt : "<<val.first<<" "<<val.second<<endl;
+		cout<<"Encrypt for message "<< i <<" : "<<val.first<<" "<<val.second<<endl;
 		// cout<<"Decrypt : "<<decrypt(sk, val, p)<<endl;
 		to_send += to_string(val.first) + " " + to_string(val.second) + " ";
 
@@ -221,11 +161,27 @@ int main(int argc, char *argv[])
 	n = write_to_socket(sockfd,str.c_str(),str.length());
 	if (n < 0) 
 		error("ERROR writing to socket");
-	string s;
-	n = read_from_socket(sockfd,s);
+	to_send = "";
+	n = read_from_socket(sockfd,to_send);
+	to_send = to_send.substr(0, to_send.length()-1);
+	vector<int> v;
+	stringstream stream_c(to_send);
+	int num_layers;
+	stream_c >> num_layers;
+	int i = 0;
+	while(true)
+	{
+		int n;
+		if( i == 4 * (1 << (3*num_layers)))
+			break;
+		stream_c >> n;
+		i++;
+		v.push_back(n);
+	}
+	Enc * n1 = get_from_string_enc(v, num_layers, 0, 4*(1<<(3*num_layers)));
+	cout<<"Final Output  = " << decode_enc(n1, sk, p)<<endl;
 	if (n < 0) 
 		error("ERROR reading from socket");
-	cout<<s<<endl;
 	close(sockfd);
 	return 0;
 }
